@@ -3,6 +3,7 @@ package com.group13.linkap.data.repository
 
 import com.group13.linkap.data.local.dao.VisitDao
 import com.group13.linkap.data.local.entity.Visit
+import com.group13.linkap.data.local.entity.VisitResident
 
 class VisitRepository(
     private val visitDao: VisitDao
@@ -26,4 +27,9 @@ class VisitRepository(
 
     suspend fun updateSyncStatus(visitId: String, status: String) =
         visitDao.updateSyncStatus(visitId, status)
+
+    suspend fun insertVisitWithResidents(
+        visit: Visit,
+        residents: List<VisitResident>
+    ) = visitDao.insertVisitWithResidents(visit, residents)
 }

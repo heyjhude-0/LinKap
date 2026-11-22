@@ -159,6 +159,11 @@ fun HouseholdDetailsScreen(
                             style = MaterialTheme.typography.headlineMedium,
                             color = colors.heroText
                         )
+                        Text(
+                            text = "ID: ${household.householdId}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.heroText
+                        )
                     }
                 }
 

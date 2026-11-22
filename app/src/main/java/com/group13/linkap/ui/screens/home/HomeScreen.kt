@@ -92,6 +92,9 @@ import com.group13.linkap.data.local.entity.Resident
 import com.group13.linkap.ui.screens.households.EditResidentScreen
 import com.group13.linkap.ui.screens.households.EditResidentViewModel
 import com.group13.linkap.ui.screens.households.EditResidentViewModelFactory
+import com.group13.linkap.ui.screens.visits.FieldVisitScreen
+import com.group13.linkap.ui.screens.visits.FieldVisitViewModel
+import com.group13.linkap.ui.screens.visits.FieldVisitViewModelFactory
 
 // Colors that switch between light and dark, taken from the LinKap theme
 private class HomeColors(
@@ -154,6 +157,8 @@ fun HomeScreen(
     var scannedHouseholdId by remember {
         mutableStateOf<String?>(null)
     }
+    var visitHouseholdId by remember { mutableStateOf<String?>(null) }
+    var isVisitScan by remember { mutableStateOf(false) }
     var selectedHouseholdDetails by remember {
         mutableStateOf<Household?>(null)
     }
@@ -185,11 +190,18 @@ fun HomeScreen(
             AppModule.provideResidentRepository(context)
         )
     )
+    val fieldVisitViewModel: FieldVisitViewModel = viewModel(
+        factory = FieldVisitViewModelFactory(
+            AppModule.provideVisitRepository(context)
+        )
+    )
     val selectedHousehold by householdViewModel.selectedHousehold.collectAsState()
     val selectedResidents by householdViewModel.selectedResidents.collectAsState()
     val households by householdViewModel.households.collectAsState(
         initial = emptyList()
     )
+    val isSavingVisit by fieldVisitViewModel.isSaving.collectAsState()
+    val visitSaveMessage by fieldVisitViewModel.saveMessage.collectAsState()
     var showRegisterHousehold by remember {
         mutableStateOf(false)
     }
@@ -265,9 +277,15 @@ fun HomeScreen(
                 QrScannerScreen(
                     onBackClick = { showScanner = false },
                     onQrCodeScanned = { qrValue ->
-                        scannedHouseholdId = qrValue
                         householdViewModel.loadHousehold(qrValue)
                         showScanner = false
+
+                        if (isVisitScan) {
+                            visitHouseholdId = qrValue
+                            scannedHouseholdId = null
+                        } else {
+                            scannedHouseholdId = qrValue
+                        }
                     }
                 )
             }
@@ -428,14 +446,19 @@ fun HomeScreen(
                     BottomNavItem.HOME -> {
                         DashboardContent(
                             onRegisterHouseholdClick = { showRegisterHousehold = true },
-                            onScanClick = { showScanner = true },
+                            onScanClick = {
+                                isVisitScan = true
+                                showScanner = true
+                            },
                             colors = colors
                         )
                     }
 
                     BottomNavItem.HOUSEHOLDS -> HouseholdScreen(
                         households = households,
-                        onScanClick = { showScanner = true },
+                        onScanClick = {
+                            isVisitScan = false
+                            showScanner = true },
                         onHouseholdClick = { household ->
                             householdViewModel.loadHousehold(household.householdId)
                             selectedHouseholdDetails = household
@@ -443,10 +466,28 @@ fun HomeScreen(
                     )
 
                     BottomNavItem.VISITS -> {
-                        PlaceholderScreen(
-                            title = "Field Visits",
-                            description = "View and record household health visits.",
-                            colors = colors
+                        FieldVisitScreen(
+                            visitHouseholdId = visitHouseholdId,
+                            household = selectedHousehold,
+                            residents = selectedResidents,
+                            onScanClick = {
+                                isVisitScan = true
+                                showScanner = true
+                            },
+                            onSearchClick = {
+                                selectedItem = BottomNavItem.HOUSEHOLDS
+                            },
+                            onSaveVisit = { householdId, residentIds, category, notes, visitDate ->
+                                fieldVisitViewModel.saveVisit(
+                                    householdId = householdId,
+                                    residentIds = residentIds,
+                                    category = category,
+                                    notes = notes,
+                                    visitDate = visitDate
+                                )
+                            },
+                            isSaving = isSavingVisit,
+                            saveMessage = visitSaveMessage
                         )
                     }
 

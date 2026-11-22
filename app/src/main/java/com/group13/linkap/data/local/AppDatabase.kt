@@ -13,16 +13,18 @@ import com.group13.linkap.data.local.entity.FollowUp
 import com.group13.linkap.data.local.entity.Household
 import com.group13.linkap.data.local.entity.Resident
 import com.group13.linkap.data.local.entity.Visit
+import com.group13.linkap.data.local.entity.VisitResident
 
 @Database(
     entities = [
         Household::class,
         Resident::class,
         Visit::class,
+        VisitResident::class,
         FollowUp::class,
         ConnectionLog::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

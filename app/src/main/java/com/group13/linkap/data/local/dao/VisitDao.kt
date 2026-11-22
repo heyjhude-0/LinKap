@@ -9,6 +9,8 @@ import androidx.room.Query
 import androidx.room.Update
 import com.group13.linkap.data.local.entity.Visit
 import kotlinx.coroutines.flow.Flow
+import androidx.room.Transaction
+import com.group13.linkap.data.local.entity.VisitResident
 
 @Dao
 interface VisitDao {
@@ -33,4 +35,15 @@ interface VisitDao {
 
     @Query("UPDATE visits SET syncStatus = :status WHERE visitId = :visitId")
     suspend fun updateSyncStatus(visitId: String, status: String)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVisitResidents(residents: List<VisitResident>)
+
+    @Transaction
+    suspend fun insertVisitWithResidents(
+        visit: Visit,
+        residents: List<VisitResident>
+    ) {
+        insertVisit(visit)
+        insertVisitResidents(residents)
+    }
 }

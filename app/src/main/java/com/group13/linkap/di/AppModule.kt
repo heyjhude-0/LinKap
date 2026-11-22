@@ -8,11 +8,35 @@ import com.group13.linkap.data.repository.FollowUpRepository
 import com.group13.linkap.data.repository.HouseholdRepository
 import com.group13.linkap.data.repository.ResidentRepository
 import com.group13.linkap.data.repository.VisitRepository
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 object AppModule {
 
     @Volatile
     private var database: AppDatabase? = null
+
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+            CREATE TABLE IF NOT EXISTS `visit_residents` (
+                `visitId` TEXT NOT NULL,
+                `residentId` TEXT NOT NULL,
+                PRIMARY KEY(`visitId`, `residentId`),
+                FOREIGN KEY(`visitId`) REFERENCES `visits`(`visitId`)
+                    ON UPDATE NO ACTION ON DELETE CASCADE,
+                FOREIGN KEY(`residentId`) REFERENCES `residents`(`residentId`)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+            )
+
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_visit_residents_residentId` ON `visit_residents` (`residentId`)"
+            )
+        }
+    }
 
     fun provideDatabase(context: Context): AppDatabase {
         return database ?: synchronized(this) {
@@ -20,9 +44,12 @@ object AppModule {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "linkap_database"
-            ).build().also {
-                database = it
-            }
+            )
+                .addMigrations(MIGRATION_1_2)
+                .build()
+                .also {
+                    database = it
+                }
         }
     }
 
