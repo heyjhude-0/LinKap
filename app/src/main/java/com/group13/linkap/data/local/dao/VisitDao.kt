@@ -10,6 +10,7 @@ import androidx.room.Update
 import com.group13.linkap.data.local.entity.Visit
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Transaction
+import com.group13.linkap.data.local.entity.Resident
 import com.group13.linkap.data.local.entity.VisitResident
 
 @Dao
@@ -46,4 +47,16 @@ interface VisitDao {
         insertVisit(visit)
         insertVisitResidents(residents)
     }
+
+    @Transaction
+        @Query("""
+        SELECT residents.* 
+        FROM residents
+        INNER JOIN visit_residents
+        ON residents.residentId = visit_residents.residentId
+        WHERE visit_residents.visitId = :visitId
+    """)
+        suspend fun getResidentsForVisit(
+            visitId: String
+        ): List<Resident>
 }

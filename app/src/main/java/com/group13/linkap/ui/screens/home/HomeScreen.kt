@@ -1,8 +1,10 @@
 package com.group13.linkap.ui.screens.home
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -35,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,17 +59,36 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.group13.linkap.R
 import com.group13.linkap.data.local.entity.Household
+import com.group13.linkap.data.local.entity.Resident
+import com.group13.linkap.data.local.entity.Visit
 import com.group13.linkap.di.AppModule
 import com.group13.linkap.ui.components.BottomNavItem
 import com.group13.linkap.ui.components.BottomNavigationBar
 import com.group13.linkap.ui.components.LinKapTopBar
 import com.group13.linkap.ui.components.SecondaryTopBar
+import com.group13.linkap.ui.screens.households.EditResidentScreen
+import com.group13.linkap.ui.screens.households.EditResidentViewModel
+import com.group13.linkap.ui.screens.households.EditResidentViewModelFactory
 import com.group13.linkap.ui.screens.households.HouseholdDetailsScreen
 import com.group13.linkap.ui.screens.households.HouseholdScreen
 import com.group13.linkap.ui.screens.households.HouseholdViewModel
 import com.group13.linkap.ui.screens.households.HouseholdViewModelFactory
 import com.group13.linkap.ui.screens.households.RegisterHouseholdScreen
+import com.group13.linkap.ui.screens.households.RegisterHouseholdViewModel
+import com.group13.linkap.ui.screens.households.RegisterHouseholdViewModelFactory
+import com.group13.linkap.ui.screens.households.RegisterResidentScreen
+import com.group13.linkap.ui.screens.households.RegisterResidentViewModel
+import com.group13.linkap.ui.screens.households.RegisterResidentViewModelFactory
 import com.group13.linkap.ui.screens.scanner.QrScannerScreen
+import com.group13.linkap.ui.screens.visits.FieldVisitScreen
+import com.group13.linkap.ui.screens.visits.FieldVisitViewModel
+import com.group13.linkap.ui.screens.visits.FieldVisitViewModelFactory
+import com.group13.linkap.ui.screens.visits.VisitDetailsScreen
+import com.group13.linkap.ui.screens.visits.VisitDetailsViewModel
+import com.group13.linkap.ui.screens.visits.VisitDetailsViewModelFactory
+import com.group13.linkap.ui.screens.visits.VisitHistoryScreen
+import com.group13.linkap.ui.screens.visits.VisitHistoryViewModel
+import com.group13.linkap.ui.screens.visits.VisitHistoryViewModelFactory
 import com.group13.linkap.ui.theme.BackgroundDark
 import com.group13.linkap.ui.theme.BackgroundLight
 import com.group13.linkap.ui.theme.GreenPrimary
@@ -81,20 +105,6 @@ import com.group13.linkap.ui.theme.TextPrimaryDark
 import com.group13.linkap.ui.theme.TextSecondary
 import com.group13.linkap.ui.theme.TextSecondaryDark
 import java.util.Calendar
-import com.group13.linkap.ui.screens.households.RegisterHouseholdViewModel
-import com.group13.linkap.ui.screens.households.RegisterHouseholdViewModelFactory
-import com.group13.linkap.ui.screens.households.RegisterResidentScreen
-import com.group13.linkap.ui.screens.households.RegisterResidentViewModel
-import com.group13.linkap.ui.screens.households.RegisterResidentViewModelFactory
-import android.widget.Toast
-import android.widget.Toast.LENGTH_SHORT
-import com.group13.linkap.data.local.entity.Resident
-import com.group13.linkap.ui.screens.households.EditResidentScreen
-import com.group13.linkap.ui.screens.households.EditResidentViewModel
-import com.group13.linkap.ui.screens.households.EditResidentViewModelFactory
-import com.group13.linkap.ui.screens.visits.FieldVisitScreen
-import com.group13.linkap.ui.screens.visits.FieldVisitViewModel
-import com.group13.linkap.ui.screens.visits.FieldVisitViewModelFactory
 
 // Colors that switch between light and dark, taken from the LinKap theme
 private class HomeColors(
@@ -167,6 +177,9 @@ fun HomeScreen(
     }
     var selectedResident by remember { mutableStateOf<Resident?>(null) }
     var showEditResident by remember { mutableStateOf(false) }
+    var selectedVisit by remember {
+        mutableStateOf<Visit?>(null)
+    }
     val context = LocalContext.current
 
     val householdViewModel: HouseholdViewModel = viewModel(
@@ -195,6 +208,11 @@ fun HomeScreen(
             AppModule.provideVisitRepository(context)
         )
     )
+    val visitDetailsViewModel: VisitDetailsViewModel = viewModel(
+        factory = VisitDetailsViewModelFactory(
+            AppModule.provideVisitRepository(context)
+        )
+    )
     val selectedHousehold by householdViewModel.selectedHousehold.collectAsState()
     val selectedResidents by householdViewModel.selectedResidents.collectAsState()
     val households by householdViewModel.households.collectAsState(
@@ -205,11 +223,39 @@ fun HomeScreen(
     var showRegisterHousehold by remember {
         mutableStateOf(false)
     }
+    val visitResidents by visitDetailsViewModel.residents.collectAsState()
+    val isLoadingVisitResidents by visitDetailsViewModel.isLoading.collectAsState()
+
+    val visitHistoryViewModel: VisitHistoryViewModel = viewModel(
+        factory = VisitHistoryViewModelFactory(
+            AppModule.provideVisitRepository(context)
+        )
+    )
+
+    val visitHistory by visitHistoryViewModel.visits.collectAsState(
+        initial = emptyList()
+    )
+
+    LaunchedEffect(visitHistory) {
+        android.util.Log.d(
+            "VISIT_HISTORY",
+            "Retrieved visits: ${visitHistory.size}"
+        )
+    }
     var isRegistering by remember { mutableStateOf(false) }
     var registrationMessage by remember { mutableStateOf<String?>(null) }
     var registrationSuccess by remember { mutableStateOf(false) }
-
+    var showVisitHistory by remember {
+        mutableStateOf(false)
+    }
     val colors = rememberHomeColors()
+
+    // Closing the visit details page. Opening a visit loads its household into the same
+    // selectedHousehold the Record Visit form uses, so reload the household that form had.
+    val closeVisitDetails = {
+        selectedVisit = null
+        visitHouseholdId?.let { householdViewModel.loadHousehold(it) }
+    }
 
     Scaffold(
         containerColor = colors.background,
@@ -252,6 +298,11 @@ fun HomeScreen(
                             title = "Household Details",
                             onBackClick = { selectedHouseholdDetails = null }
                         )
+                    } else if (selectedVisit != null) {
+                        SecondaryTopBar(
+                            title = "Visit Details",
+                            onBackClick = { closeVisitDetails() }
+                        )
                     } else {
                         LinKapTopBar()
                     }
@@ -259,7 +310,13 @@ fun HomeScreen(
             }
         },
         bottomBar = {
-            if (!showScanner && !showRegisterHousehold && !showRegisterResident && !showEditResident && selectedHouseholdDetails == null) {
+            if (!showScanner &&
+                !showRegisterHousehold &&
+                !showRegisterResident &&
+                !showEditResident &&
+                selectedHouseholdDetails == null &&
+                selectedVisit == null
+            ) {
                 BottomNavigationBar(
                     selectedItem = selectedItem,
                     onItemSelected = { selectedItem = it }
@@ -323,7 +380,7 @@ fun HomeScreen(
                     }
                 )
             }
-        }else if (showRegisterHousehold) {
+        } else if (showRegisterHousehold) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -359,7 +416,7 @@ fun HomeScreen(
                     },
                 )
             }
-        }  else if (showRegisterResident){
+        } else if (showRegisterResident) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -396,27 +453,45 @@ fun HomeScreen(
                 )
             }
         } else if (selectedHouseholdDetails != null) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            HouseholdDetailsScreen(
-                household = selectedHouseholdDetails!!,
-                residents = selectedResidents,
-                onBackClick = {
-                    selectedHouseholdDetails = null
-                },
-                onAddResidentClick = {
-                    showRegisterResident = true
-                },
-                onEditResidentClick = { resident ->
-                    selectedResident = resident
-                    showEditResident = true
-                }
-            )
-        }
-    } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                HouseholdDetailsScreen(
+                    household = selectedHouseholdDetails!!,
+                    residents = selectedResidents,
+                    onBackClick = {
+                        selectedHouseholdDetails = null
+                    },
+                    onAddResidentClick = {
+                        showRegisterResident = true
+                    },
+                    onEditResidentClick = { resident ->
+                        selectedResident = resident
+                        showEditResident = true
+                    }
+                )
+            }
+        } else if (selectedVisit != null) {
+            // Its own page, outside the scrolling column below. VisitDetailsScreen scrolls
+            // by itself, so showing it inside that column caused the infinite-height crash.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                VisitDetailsScreen(
+                    visit = selectedVisit!!,
+                    household = selectedHousehold?.takeIf {
+                        it.householdId == selectedVisit?.householdId
+                    },
+                    residents = visitResidents,
+                    isLoadingResidents = isLoadingVisitResidents,
+                    onBackClick = { closeVisitDetails() }
+                )
+            }
+        } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -458,7 +533,8 @@ fun HomeScreen(
                         households = households,
                         onScanClick = {
                             isVisitScan = false
-                            showScanner = true },
+                            showScanner = true
+                        },
                         onHouseholdClick = { household ->
                             householdViewModel.loadHousehold(household.householdId)
                             selectedHouseholdDetails = household
@@ -466,29 +542,55 @@ fun HomeScreen(
                     )
 
                     BottomNavItem.VISITS -> {
-                        FieldVisitScreen(
-                            visitHouseholdId = visitHouseholdId,
-                            household = selectedHousehold,
-                            residents = selectedResidents,
-                            onScanClick = {
-                                isVisitScan = true
-                                showScanner = true
-                            },
-                            onSearchClick = {
-                                selectedItem = BottomNavItem.HOUSEHOLDS
-                            },
-                            onSaveVisit = { householdId, residentIds, category, notes, visitDate ->
-                                fieldVisitViewModel.saveVisit(
-                                    householdId = householdId,
-                                    residentIds = residentIds,
-                                    category = category,
-                                    notes = notes,
-                                    visitDate = visitDate
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            VisitTabSwitch(
+                                showHistory = showVisitHistory,
+                                onSelect = { showVisitHistory = it },
+                                colors = colors
+                            )
+
+                            if (showVisitHistory) {
+                                VisitHistoryScreen(
+                                    visits = visitHistory,
+                                    households = households,
+                                    onVisitClick = { visit ->
+                                        selectedVisit = visit
+                                        householdViewModel.loadHousehold(visit.householdId)
+                                        visitDetailsViewModel.loadResidents(visit.visitId)
+                                    }
                                 )
-                            },
-                            isSaving = isSavingVisit,
-                            saveMessage = visitSaveMessage
-                        )
+                            } else {
+                                FieldVisitScreen(
+                                    visitHouseholdId = visitHouseholdId,
+                                    household = selectedHousehold,
+                                    residents = selectedResidents,
+                                    onScanClick = {
+                                        isVisitScan = true
+                                        showScanner = true
+                                    },
+                                    onSearchClick = {
+                                        selectedItem = BottomNavItem.HOUSEHOLDS
+                                    },
+                                    onSaveVisit = { householdId, residentIds, category, notes, visitDate, latitude, longitude ->
+                                        fieldVisitViewModel.saveVisit(
+                                            householdId = householdId,
+                                            residentIds = residentIds,
+                                            category = category,
+                                            notes = notes,
+                                            visitDate = visitDate,
+                                            latitude = latitude,
+                                            longitude = longitude
+                                        )
+                                    },
+                                    isSaving = isSavingVisit,
+                                    saveMessage = visitSaveMessage,
+                                    onMessageShown = { fieldVisitViewModel.clearSaveMessage() }
+                                )
+                            }
+                        }
                     }
 
                     BottomNavItem.FOLLOW_UPS -> {
@@ -543,6 +645,52 @@ private fun greeting(): String {
         hour < 12 -> "GOOD MORNING"
         hour < 18 -> "GOOD AFTERNOON"
         else -> "GOOD EVENING"
+    }
+}
+
+/** Two-part switch for the Visits tab: Record Visit and Visit History. */
+@Composable
+private fun VisitTabSwitch(
+    showHistory: Boolean,
+    onSelect: (Boolean) -> Unit,
+    colors: HomeColors
+) {
+    val shape = RoundedCornerShape(14.dp)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.surface)
+            .border(1.dp, colors.border, shape)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        listOf("Record Visit" to false, "Visit History" to true).forEach { (label, isHistory) ->
+            val selected = showHistory == isHistory
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) colors.primary else Color.Transparent)
+                    .selectable(
+                        selected = selected,
+                        role = Role.Tab,
+                        onClick = { onSelect(isHistory) }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = if (selected) colors.onPrimary else colors.textSecondary
+                )
+            }
+        }
     }
 }
 

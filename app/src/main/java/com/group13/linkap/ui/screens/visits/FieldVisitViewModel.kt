@@ -26,7 +26,9 @@ class FieldVisitViewModel(
         residentIds: Set<String>,
         category: String,
         notes: String,
-        visitDate: Long
+        visitDate: Long,
+        latitude: Double? = null,
+        longitude: Double? = null
     ) {
         if (residentIds.isEmpty()) {
             _saveMessage.value = "Please select at least one resident."
@@ -47,8 +49,8 @@ class FieldVisitViewModel(
                     visitDate = visitDate,
                     visitCategory = category,
                     notes = notes.trim().ifBlank { null },
-                    latitude = null,
-                    longitude = null,
+                    latitude = latitude,
+                    longitude = longitude,
                     syncStatus = "PENDING",
                     createdAt = currentTime,
                     updatedAt = currentTime

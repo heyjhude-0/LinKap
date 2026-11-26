@@ -25,9 +25,37 @@ interface FollowUpDao {
     @Query("SELECT * FROM follow_ups ORDER BY dueDate ASC")
     fun getAllFollowUps(): Flow<List<FollowUp>>
 
-    @Query("SELECT * FROM follow_ups WHERE householdId = :householdId ORDER BY dueDate ASC")
+    @Query("""
+        SELECT * FROM follow_ups
+        WHERE householdId = :householdId
+        ORDER BY dueDate ASC
+    """)
     fun getFollowUpsByHousehold(householdId: String): Flow<List<FollowUp>>
 
-    @Query("SELECT * FROM follow_ups WHERE status = 'PENDING' ORDER BY dueDate ASC")
+    @Query("""
+        SELECT * FROM follow_ups
+        WHERE status = 'PENDING'
+        ORDER BY dueDate ASC
+    """)
     fun getPendingFollowUps(): Flow<List<FollowUp>>
+
+    @Query("""
+        SELECT * FROM follow_ups
+        WHERE status = 'COMPLETED'
+        ORDER BY dueDate DESC
+    """)
+    fun getCompletedFollowUps(): Flow<List<FollowUp>>
+
+    @Query("""
+        SELECT * FROM follow_ups
+        WHERE status = 'PENDING' AND dueDate < :currentTime
+        ORDER BY dueDate ASC
+    """)
+    fun getOverdueFollowUps(currentTime: Long): Flow<List<FollowUp>>
+
+    @Query("SELECT * FROM follow_ups WHERE followUpId = :followUpId LIMIT 1")
+    suspend fun getFollowUpById(followUpId: String): FollowUp?
+
+    @Query("SELECT * FROM follow_ups WHERE status = :status ORDER BY dueDate ASC")
+    fun getFollowUpsByStatus(status: String): Flow<List<FollowUp>>
 }

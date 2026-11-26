@@ -9,8 +9,8 @@ val GreenSecondary = Color(0xFF59AC87)
 val GreenTertiary = Color(0xFFB8DCC7)
 
 // Light theme
-val BackgroundLight = Color(0xFFE7F3ED)
-val SurfaceLight = Color(0xFFFFFFFF)
+val BackgroundLight = Color(0xFFFFFFFF)
+val SurfaceLight = Color(0xFFF8FAFC)
 val TextPrimary = Color(0xFF333333)
 val TextSecondary = Color(0xFF68736C)
 

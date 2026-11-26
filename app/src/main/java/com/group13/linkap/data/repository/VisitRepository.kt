@@ -32,4 +32,7 @@ class VisitRepository(
         visit: Visit,
         residents: List<VisitResident>
     ) = visitDao.insertVisitWithResidents(visit, residents)
+
+    suspend fun getResidentsForVisit(visitId: String) =
+        visitDao.getResidentsForVisit(visitId)
 }
