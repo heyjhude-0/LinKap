@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.group13.linkap.R
+import com.group13.linkap.data.local.entity.FollowUp
 import com.group13.linkap.data.local.entity.Household
 import com.group13.linkap.data.local.entity.Resident
 import com.group13.linkap.data.local.entity.Visit
@@ -66,6 +67,7 @@ import com.group13.linkap.ui.components.BottomNavItem
 import com.group13.linkap.ui.components.BottomNavigationBar
 import com.group13.linkap.ui.components.LinKapTopBar
 import com.group13.linkap.ui.components.SecondaryTopBar
+import com.group13.linkap.ui.components.SyncStatusCard
 import com.group13.linkap.ui.screens.households.EditResidentScreen
 import com.group13.linkap.ui.screens.households.EditResidentViewModel
 import com.group13.linkap.ui.screens.households.EditResidentViewModelFactory
@@ -89,6 +91,10 @@ import com.group13.linkap.ui.screens.visits.VisitDetailsViewModelFactory
 import com.group13.linkap.ui.screens.visits.VisitHistoryScreen
 import com.group13.linkap.ui.screens.visits.VisitHistoryViewModel
 import com.group13.linkap.ui.screens.visits.VisitHistoryViewModelFactory
+import com.group13.linkap.ui.screens.followups.FollowUpScreen
+import com.group13.linkap.ui.screens.followups.FollowUpViewModel
+import com.group13.linkap.ui.screens.followups.FollowUpViewModelFactory
+import com.group13.linkap.ui.screens.followups.AddFollowUpScreen
 import com.group13.linkap.ui.theme.BackgroundDark
 import com.group13.linkap.ui.theme.BackgroundLight
 import com.group13.linkap.ui.theme.GreenPrimary
@@ -180,6 +186,7 @@ fun HomeScreen(
     var selectedVisit by remember {
         mutableStateOf<Visit?>(null)
     }
+    var showAddFollowUp by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val householdViewModel: HouseholdViewModel = viewModel(
@@ -213,11 +220,21 @@ fun HomeScreen(
             AppModule.provideVisitRepository(context)
         )
     )
+    val followUpViewModel: FollowUpViewModel = viewModel(
+        factory = FollowUpViewModelFactory(
+            AppModule.provideFollowUpRepository(context)
+        )
+    )
+
+    val followUps by followUpViewModel.followUps.collectAsState()
     val selectedHousehold by householdViewModel.selectedHousehold.collectAsState()
     val selectedResidents by householdViewModel.selectedResidents.collectAsState()
     val households by householdViewModel.households.collectAsState(
         initial = emptyList()
     )
+    val allResidents by remember(context) {
+        AppModule.provideResidentRepository(context).getAllResidents()
+    }.collectAsState(initial = emptyList())
     val isSavingVisit by fieldVisitViewModel.isSaving.collectAsState()
     val visitSaveMessage by fieldVisitViewModel.saveMessage.collectAsState()
     var showRegisterHousehold by remember {
@@ -520,6 +537,10 @@ fun HomeScreen(
 
                     BottomNavItem.HOME -> {
                         DashboardContent(
+                            households = households,
+                            residents = allResidents,
+                            visits = visitHistory,
+                            followUps = followUps,
                             onRegisterHouseholdClick = { showRegisterHousehold = true },
                             onScanClick = {
                                 isVisitScan = true
@@ -594,11 +615,37 @@ fun HomeScreen(
                     }
 
                     BottomNavItem.FOLLOW_UPS -> {
-                        PlaceholderScreen(
-                            title = "Follow-ups",
-                            description = "Monitor scheduled household follow-ups.",
-                            colors = colors
-                        )
+                        if (showAddFollowUp) {
+                            AddFollowUpScreen(
+                                households = households,
+                                onSave = { householdId, title, description, dueDate ->
+                                    followUpViewModel.createFollowUp(
+                                        householdId = householdId,
+                                        title = title,
+                                        description = description,
+                                        dueDate = dueDate
+                                    )
+                                    showAddFollowUp = false
+                                },
+                                onBack = {
+                                    showAddFollowUp = false
+                                }
+                            )
+                        } else {
+                            FollowUpScreen(
+                                followUps = followUps,
+                                households = households,
+                                onAddClick = {
+                                    showAddFollowUp = true
+                                },
+                                onComplete = { followUp ->
+                                    followUpViewModel.updateFollowUp(followUp)
+                                },
+                                onDelete = { followUp ->
+                                    followUpViewModel.deleteFollowUp(followUp)
+                                }
+                            )
+                        }
                     }
 
                     BottomNavItem.PROFILE -> {
@@ -773,6 +820,10 @@ private fun DetailRow(label: String, value: String, colors: HomeColors) {
 
 @Composable
 private fun DashboardContent(
+    households: List<Household>,
+    residents: List<Resident>,
+    visits: List<Visit>,
+    followUps: List<FollowUp>,
     onRegisterHouseholdClick: () -> Unit,
     onScanClick: () -> Unit,
     colors: HomeColors
@@ -813,7 +864,17 @@ private fun DashboardContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Cloud Sync Status Card
+        SyncStatusCard(
+            households = households,
+            residents = residents,
+            visits = visits,
+            followUps = followUps
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Overview
         SectionTitle("Your Overview", colors)
@@ -824,8 +885,8 @@ private fun DashboardContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DashboardStatCard("Households", "128", colors.primary, colors, Modifier.weight(1f))
-            DashboardStatCard("Residents", "356", StatusInfo, colors, Modifier.weight(1f))
+            DashboardStatCard("Households", households.size.toString(), colors.primary, colors, Modifier.weight(1f))
+            DashboardStatCard("Residents", residents.size.toString(), StatusInfo, colors, Modifier.weight(1f))
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -834,8 +895,8 @@ private fun DashboardContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DashboardStatCard("Pending Visits", "8", StatusWarning, colors, Modifier.weight(1f))
-            DashboardStatCard("Follow-ups", "5", StatusError, colors, Modifier.weight(1f))
+            DashboardStatCard("Pending Visits", visits.count { it.syncStatus == "PENDING" }.toString(), StatusWarning, colors, Modifier.weight(1f))
+            DashboardStatCard("Follow-ups", followUps.count { it.status == "PENDING" }.toString(), StatusError, colors, Modifier.weight(1f))
         }
 
         Spacer(modifier = Modifier.height(28.dp))

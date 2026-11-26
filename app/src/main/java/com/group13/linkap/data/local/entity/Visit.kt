@@ -1,4 +1,3 @@
-
 package com.group13.linkap.data.local.entity
 
 import androidx.room.Entity
@@ -33,5 +32,6 @@ data class Visit(
 
     val syncStatus: String = "PENDING",
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val lastSyncedAt: Long? = null
 )

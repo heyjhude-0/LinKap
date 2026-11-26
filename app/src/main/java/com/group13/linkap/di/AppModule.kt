@@ -1,15 +1,14 @@
-
 package com.group13.linkap.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.group13.linkap.data.local.AppDatabase
 import com.group13.linkap.data.repository.FollowUpRepository
 import com.group13.linkap.data.repository.HouseholdRepository
 import com.group13.linkap.data.repository.ResidentRepository
 import com.group13.linkap.data.repository.VisitRepository
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 
 object AppModule {
 
@@ -38,6 +37,23 @@ object AppModule {
         }
     }
 
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE households ADD COLUMN syncStatus TEXT NOT NULL DEFAULT 'PENDING'")
+            db.execSQL("ALTER TABLE households ADD COLUMN lastSyncedAt INTEGER DEFAULT NULL")
+
+            db.execSQL("ALTER TABLE residents ADD COLUMN syncStatus TEXT NOT NULL DEFAULT 'PENDING'")
+            db.execSQL("ALTER TABLE residents ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE residents ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE residents ADD COLUMN lastSyncedAt INTEGER DEFAULT NULL")
+
+            db.execSQL("ALTER TABLE visits ADD COLUMN lastSyncedAt INTEGER DEFAULT NULL")
+
+            db.execSQL("ALTER TABLE follow_ups ADD COLUMN syncStatus TEXT NOT NULL DEFAULT 'PENDING'")
+            db.execSQL("ALTER TABLE follow_ups ADD COLUMN lastSyncedAt INTEGER DEFAULT NULL")
+        }
+    }
+
     fun provideDatabase(context: Context): AppDatabase {
         return database ?: synchronized(this) {
             database ?: Room.databaseBuilder(
@@ -45,7 +61,7 @@ object AppModule {
                 AppDatabase::class.java,
                 "linkap_database"
             )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
                 .also {
                     database = it

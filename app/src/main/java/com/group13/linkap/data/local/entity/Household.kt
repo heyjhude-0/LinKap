@@ -16,6 +16,8 @@ data class Household(
     val latitude: Double?,
     val longitude: Double?,
 
+    val syncStatus: String = "PENDING",
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val lastSyncedAt: Long? = null
 )

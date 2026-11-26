@@ -1,4 +1,3 @@
-
 package com.group13.linkap.data.local
 
 import androidx.room.Database
@@ -24,7 +23,7 @@ import com.group13.linkap.data.local.entity.VisitResident
         FollowUp::class,
         ConnectionLog::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

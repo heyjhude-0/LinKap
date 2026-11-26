@@ -1,4 +1,3 @@
-
 package com.group13.linkap.data.local.dao
 
 import androidx.room.Dao
@@ -16,6 +15,9 @@ interface HouseholdDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHousehold(household: Household)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHouseholds(households: List<Household>)
+
     @Update
     suspend fun updateHousehold(household: Household)
 
@@ -28,6 +30,15 @@ interface HouseholdDao {
     @Query("SELECT * FROM households WHERE householdId = :householdId")
     fun getHouseholdById(householdId: String): Flow<Household?>
 
+    @Query("SELECT * FROM households WHERE householdId = :householdId LIMIT 1")
+    suspend fun getHouseholdByIdRaw(householdId: String): Household?
+
     @Query("SELECT * FROM households WHERE LOWER(householdCode) = LOWER(:householdCode) LIMIT 1")
     suspend fun getHouseholdByCode(householdCode: String): Household?
+
+    @Query("SELECT * FROM households WHERE syncStatus IN ('PENDING', 'FAILED')")
+    suspend fun getPendingHouseholds(): List<Household>
+
+    @Query("UPDATE households SET syncStatus = :status, lastSyncedAt = :lastSyncedAt WHERE householdId = :householdId")
+    suspend fun updateSyncStatus(householdId: String, status: String, lastSyncedAt: Long? = System.currentTimeMillis())
 }

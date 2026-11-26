@@ -1,4 +1,3 @@
-
 package com.group13.linkap.data.local.entity
 
 import androidx.room.Entity
@@ -29,6 +28,8 @@ data class FollowUp(
     val dueDate: Long,
 
     val status: String = "PENDING",
+    val syncStatus: String = "PENDING",
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val lastSyncedAt: Long? = null
 )

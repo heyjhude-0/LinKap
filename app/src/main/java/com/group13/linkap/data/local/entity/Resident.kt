@@ -1,4 +1,3 @@
-
 package com.group13.linkap.data.local.entity
 
 import androidx.room.Entity
@@ -33,5 +32,10 @@ data class Resident(
     val relationshipToHead: String,
 
     val contactNumber: String?,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+
+    val syncStatus: String = "PENDING",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val lastSyncedAt: Long? = null
 )

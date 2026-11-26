@@ -1,4 +1,3 @@
-
 package com.group13.linkap.data.local.dao
 
 import androidx.room.Dao
@@ -15,6 +14,9 @@ interface FollowUpDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFollowUp(followUp: FollowUp)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFollowUps(followUps: List<FollowUp>)
 
     @Update
     suspend fun updateFollowUp(followUp: FollowUp)
@@ -41,6 +43,12 @@ interface FollowUpDao {
 
     @Query("""
         SELECT * FROM follow_ups
+        WHERE syncStatus IN ('PENDING', 'FAILED')
+    """)
+    suspend fun getPendingSyncFollowUps(): List<FollowUp>
+
+    @Query("""
+        SELECT * FROM follow_ups
         WHERE status = 'COMPLETED'
         ORDER BY dueDate DESC
     """)
@@ -58,4 +66,7 @@ interface FollowUpDao {
 
     @Query("SELECT * FROM follow_ups WHERE status = :status ORDER BY dueDate ASC")
     fun getFollowUpsByStatus(status: String): Flow<List<FollowUp>>
+
+    @Query("UPDATE follow_ups SET syncStatus = :status, lastSyncedAt = :lastSyncedAt WHERE followUpId = :followUpId")
+    suspend fun updateSyncStatus(followUpId: String, status: String, lastSyncedAt: Long? = System.currentTimeMillis())
 }

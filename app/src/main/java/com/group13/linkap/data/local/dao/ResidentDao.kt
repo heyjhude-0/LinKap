@@ -1,4 +1,3 @@
-
 package com.group13.linkap.data.local.dao
 
 import androidx.room.Dao
@@ -33,4 +32,10 @@ interface ResidentDao {
 
     @Query("SELECT * FROM residents WHERE residentId = :residentId")
     suspend fun getResidentById(residentId: String): Resident?
+
+    @Query("SELECT * FROM residents WHERE syncStatus IN ('PENDING', 'FAILED')")
+    suspend fun getPendingResidents(): List<Resident>
+
+    @Query("UPDATE residents SET syncStatus = :status, lastSyncedAt = :lastSyncedAt WHERE residentId = :residentId")
+    suspend fun updateSyncStatus(residentId: String, status: String, lastSyncedAt: Long? = System.currentTimeMillis())
 }
