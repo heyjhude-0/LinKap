@@ -62,6 +62,7 @@ import com.group13.linkap.data.local.entity.FollowUp
 import com.group13.linkap.data.local.entity.Household
 import com.group13.linkap.data.local.entity.Resident
 import com.group13.linkap.data.local.entity.Visit
+import com.group13.linkap.data.repository.AuthRepository
 import com.group13.linkap.di.AppModule
 import com.group13.linkap.ui.components.BottomNavItem
 import com.group13.linkap.ui.components.BottomNavigationBar
@@ -95,6 +96,9 @@ import com.group13.linkap.ui.screens.followups.FollowUpScreen
 import com.group13.linkap.ui.screens.followups.FollowUpViewModel
 import com.group13.linkap.ui.screens.followups.FollowUpViewModelFactory
 import com.group13.linkap.ui.screens.followups.AddFollowUpScreen
+import com.group13.linkap.ui.screens.profile.ProfileScreen
+import com.group13.linkap.ui.screens.profile.ProfileViewModel
+import com.group13.linkap.ui.screens.profile.ProfileViewModelFactory
 import com.group13.linkap.ui.theme.BackgroundDark
 import com.group13.linkap.ui.theme.BackgroundLight
 import com.group13.linkap.ui.theme.GreenPrimary
@@ -188,6 +192,11 @@ fun HomeScreen(
     }
     var showAddFollowUp by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val profileViewModel: ProfileViewModel = viewModel(
+        factory = ProfileViewModelFactory(
+            AuthRepository(context)
+        )
+    )
 
     val householdViewModel: HouseholdViewModel = viewModel(
         factory = HouseholdViewModelFactory(
@@ -649,29 +658,10 @@ fun HomeScreen(
                     }
 
                     BottomNavItem.PROFILE -> {
-                        PlaceholderScreen(
-                            title = "My Profile",
-                            description = "View your BHW account information.",
-                            colors = colors
+                        ProfileScreen(
+                            viewModel = profileViewModel,
+                            onLogout = onLogout
                         )
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        // Log out lives here now that the header no longer has a button for it
-                        OutlinedButton(
-                            onClick = onLogout,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.5.dp, colors.primary)
-                        ) {
-                            Text(
-                                text = "Log out",
-                                color = colors.primary,
-                                style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp)
-                            )
-                        }
                     }
                 }
             }

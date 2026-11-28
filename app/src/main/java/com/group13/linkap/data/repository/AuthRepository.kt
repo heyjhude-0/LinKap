@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.group13.linkap.di.AppModule
+import com.group13.linkap.data.model.UserProfile
 
 class AuthRepository(
     private val context: Context? = null,
@@ -198,4 +199,79 @@ class AuthRepository(
             }
         }
     }
+
+
+    fun getCurrentUserProfile(
+        onResult: (Result<UserProfile>) -> Unit
+    ) {
+        val user = auth.currentUser
+
+        if (user == null) {
+            onResult(
+                Result.failure(Exception("No signed-in user found."))
+            )
+            return
+        }
+
+        firestore.collection("users")
+            .document(user.uid)
+            .get()
+            .addOnSuccessListener { document ->
+
+                if (!document.exists()) {
+                    onResult(
+                        Result.failure(
+                            Exception("User profile not found.")
+                        )
+                    )
+                    return@addOnSuccessListener
+                }
+
+                val profile = UserProfile(
+                    uid = user.uid,
+                    fullName = document.getString("fullName")
+                        ?: user.displayName.orEmpty(),
+                    email = user.email
+                        ?: document.getString("email").orEmpty(),
+                    role = document.getString("role").orEmpty(),
+                    barangayId = document.getString("barangayId").orEmpty(),
+                    isActive = document.getBoolean("isActive") ?: false
+                )
+
+                onResult(Result.success(profile))
+            }
+            .addOnFailureListener { exception ->
+                onResult(Result.failure(exception))
+            }
+    }
+
+    fun updateFullName(
+        newFullName: String,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        val user = auth.currentUser
+
+        if (user == null) {
+            onResult(Result.failure(Exception("No signed-in user found.")))
+            return
+        }
+
+        val trimmedName = newFullName.trim()
+
+        if (trimmedName.isBlank()) {
+            onResult(Result.failure(Exception("Full name cannot be empty.")))
+            return
+        }
+
+        firestore.collection("users")
+            .document(user.uid)
+            .update("fullName", trimmedName)
+            .addOnSuccessListener {
+                onResult(Result.success(Unit))
+            }
+            .addOnFailureListener { exception ->
+                onResult(Result.failure(exception))
+            }
+    }
+
 }
