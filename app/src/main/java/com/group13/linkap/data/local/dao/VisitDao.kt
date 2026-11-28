@@ -27,17 +27,20 @@ interface VisitDao {
     @Delete
     suspend fun deleteVisit(visit: Visit)
 
-    @Query("SELECT * FROM visits ORDER BY visitDate DESC")
-    fun getAllVisits(): Flow<List<Visit>>
+    @Query("SELECT * FROM visits WHERE barangayId = :barangayId ORDER BY visitDate DESC")
+    fun getAllVisits(barangayId: String): Flow<List<Visit>>
 
-    @Query("SELECT * FROM visits WHERE householdId = :householdId ORDER BY visitDate DESC")
-    fun getVisitsByHousehold(householdId: String): Flow<List<Visit>>
+    @Query("SELECT * FROM visits WHERE householdId = :householdId AND barangayId = :barangayId ORDER BY visitDate DESC")
+    fun getVisitsByHousehold(householdId: String, barangayId: String): Flow<List<Visit>>
+
+    @Query("SELECT * FROM visits WHERE visitId = :visitId AND barangayId = :barangayId LIMIT 1")
+    suspend fun getVisitByIdRaw(visitId: String, barangayId: String): Visit?
 
     @Query("SELECT * FROM visits WHERE visitId = :visitId LIMIT 1")
-    suspend fun getVisitByIdRaw(visitId: String): Visit?
+    suspend fun getVisitByIdRawAnyBarangay(visitId: String): Visit?
 
-    @Query("SELECT * FROM visits WHERE syncStatus IN ('PENDING', 'FAILED')")
-    suspend fun getPendingVisits(): List<Visit>
+    @Query("SELECT * FROM visits WHERE syncStatus IN ('PENDING', 'FAILED') AND barangayId = :barangayId")
+    suspend fun getPendingVisits(barangayId: String): List<Visit>
 
     @Query("UPDATE visits SET syncStatus = :status, lastSyncedAt = :lastSyncedAt WHERE visitId = :visitId")
     suspend fun updateSyncStatus(visitId: String, status: String, lastSyncedAt: Long? = System.currentTimeMillis())
@@ -63,9 +66,10 @@ interface VisitDao {
         FROM residents
         INNER JOIN visit_residents
         ON residents.residentId = visit_residents.residentId
-        WHERE visit_residents.visitId = :visitId
+        WHERE visit_residents.visitId = :visitId AND residents.barangayId = :barangayId
     """)
     suspend fun getResidentsForVisit(
-        visitId: String
+        visitId: String,
+        barangayId: String
     ): List<Resident>
 }

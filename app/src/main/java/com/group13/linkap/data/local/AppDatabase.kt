@@ -23,7 +23,7 @@ import com.group13.linkap.data.local.entity.VisitResident
         FollowUp::class,
         ConnectionLog::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

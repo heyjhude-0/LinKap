@@ -1,5 +1,6 @@
 package com.group13.linkap.ui.components
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -90,7 +91,10 @@ fun SyncStatusCard(
     // Auto-trigger sync when connectivity turns online
     LaunchedEffect(isConnected) {
         if (isConnected) {
+            Log.d("LinKapSync", "Network connectivity is ONLINE. Scheduling background sync via SyncManager...")
             SyncManager(context).scheduleSync()
+        } else {
+            Log.d("LinKapSync", "Network connectivity is OFFLINE.")
         }
     }
 
@@ -222,20 +226,27 @@ fun SyncStatusCard(
 
             Button(
                 onClick = {
+                    Log.d("LinKapSync", "Sync Now button tapped. Connectivity: isConnected=$isConnected")
                     if (!isConnected) {
+                        Log.d("LinKapSync", "Sync aborted: No internet connection.")
                         Toast.makeText(context, "No internet connection. Sync requires internet.", Toast.LENGTH_SHORT).show()
                     } else {
                         isManualSyncing = true
                         scope.launch {
+                            Log.d("LinKapSync", "Manual sync coroutine started.")
                             val engine = FirestoreSyncEngine(context)
+                            Log.d("LinKapSync", "Invoking FirestoreSyncEngine.performSync()...")
                             val res = engine.performSync()
                             isManualSyncing = false
                             lastSyncTime = syncPreferences.getLastSyncTime()
 
                             if (res.isSuccess) {
+                                Log.d("LinKapSync", "performSync() returned Result.success.")
                                 Toast.makeText(context, "Synchronization completed successfully!", Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(context, "Sync failed: ${res.exceptionOrNull()?.message ?: "Unknown error"}", Toast.LENGTH_SHORT).show()
+                                val ex = res.exceptionOrNull()
+                                Log.e("LinKapSync", "performSync() returned Result.failure: ${ex?.message}", ex)
+                                Toast.makeText(context, "Sync failed: ${ex?.message ?: "Unknown error"}", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

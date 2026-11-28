@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.group13.linkap.data.local.AppDatabase
+import com.group13.linkap.data.local.UserSessionManager
 import com.group13.linkap.data.repository.FollowUpRepository
 import com.group13.linkap.data.repository.HouseholdRepository
 import com.group13.linkap.data.repository.ResidentRepository
@@ -14,6 +15,9 @@ object AppModule {
 
     @Volatile
     private var database: AppDatabase? = null
+
+    @Volatile
+    private var userSessionManager: UserSessionManager? = null
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -54,6 +58,15 @@ object AppModule {
         }
     }
 
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE households ADD COLUMN barangayId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE residents ADD COLUMN barangayId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE visits ADD COLUMN barangayId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE follow_ups ADD COLUMN barangayId TEXT NOT NULL DEFAULT ''")
+        }
+    }
+
     fun provideDatabase(context: Context): AppDatabase {
         return database ?: synchronized(this) {
             database ?: Room.databaseBuilder(
@@ -61,7 +74,7 @@ object AppModule {
                 AppDatabase::class.java,
                 "linkap_database"
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
                 .also {
                     database = it
@@ -69,27 +82,39 @@ object AppModule {
         }
     }
 
+    fun provideUserSessionManager(context: Context): UserSessionManager {
+        return userSessionManager ?: synchronized(this) {
+            userSessionManager ?: UserSessionManager(context.applicationContext).also {
+                userSessionManager = it
+            }
+        }
+    }
+
     fun provideHouseholdRepository(context: Context): HouseholdRepository {
         return HouseholdRepository(
-            provideDatabase(context).householdDao()
+            provideDatabase(context).householdDao(),
+            provideUserSessionManager(context)
         )
     }
 
     fun provideResidentRepository(context: Context): ResidentRepository {
         return ResidentRepository(
-            provideDatabase(context).residentDao()
+            provideDatabase(context).residentDao(),
+            provideUserSessionManager(context)
         )
     }
 
     fun provideVisitRepository(context: Context): VisitRepository {
         return VisitRepository(
-            provideDatabase(context).visitDao()
+            provideDatabase(context).visitDao(),
+            provideUserSessionManager(context)
         )
     }
 
     fun provideFollowUpRepository(context: Context): FollowUpRepository {
         return FollowUpRepository(
-            provideDatabase(context).followUpDao()
+            provideDatabase(context).followUpDao(),
+            provideUserSessionManager(context)
         )
     }
 }

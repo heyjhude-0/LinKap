@@ -34,6 +34,7 @@ data class Resident(
     val contactNumber: String?,
     val isActive: Boolean = true,
 
+    val barangayId: String = "",
     val syncStatus: String = "PENDING",
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),

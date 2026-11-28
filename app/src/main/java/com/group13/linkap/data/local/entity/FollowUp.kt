@@ -28,6 +28,7 @@ data class FollowUp(
     val dueDate: Long,
 
     val status: String = "PENDING",
+    val barangayId: String = "",
     val syncStatus: String = "PENDING",
     val createdAt: Long,
     val updatedAt: Long,

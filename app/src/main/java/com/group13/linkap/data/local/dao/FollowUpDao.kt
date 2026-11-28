@@ -24,48 +24,51 @@ interface FollowUpDao {
     @Delete
     suspend fun deleteFollowUp(followUp: FollowUp)
 
-    @Query("SELECT * FROM follow_ups ORDER BY dueDate ASC")
-    fun getAllFollowUps(): Flow<List<FollowUp>>
+    @Query("SELECT * FROM follow_ups WHERE barangayId = :barangayId ORDER BY dueDate ASC")
+    fun getAllFollowUps(barangayId: String): Flow<List<FollowUp>>
 
     @Query("""
         SELECT * FROM follow_ups
-        WHERE householdId = :householdId
+        WHERE householdId = :householdId AND barangayId = :barangayId
         ORDER BY dueDate ASC
     """)
-    fun getFollowUpsByHousehold(householdId: String): Flow<List<FollowUp>>
+    fun getFollowUpsByHousehold(householdId: String, barangayId: String): Flow<List<FollowUp>>
 
     @Query("""
         SELECT * FROM follow_ups
-        WHERE status = 'PENDING'
+        WHERE status = 'PENDING' AND barangayId = :barangayId
         ORDER BY dueDate ASC
     """)
-    fun getPendingFollowUps(): Flow<List<FollowUp>>
+    fun getPendingFollowUps(barangayId: String): Flow<List<FollowUp>>
 
     @Query("""
         SELECT * FROM follow_ups
-        WHERE syncStatus IN ('PENDING', 'FAILED')
+        WHERE syncStatus IN ('PENDING', 'FAILED') AND barangayId = :barangayId
     """)
-    suspend fun getPendingSyncFollowUps(): List<FollowUp>
+    suspend fun getPendingSyncFollowUps(barangayId: String): List<FollowUp>
 
     @Query("""
         SELECT * FROM follow_ups
-        WHERE status = 'COMPLETED'
+        WHERE status = 'COMPLETED' AND barangayId = :barangayId
         ORDER BY dueDate DESC
     """)
-    fun getCompletedFollowUps(): Flow<List<FollowUp>>
+    fun getCompletedFollowUps(barangayId: String): Flow<List<FollowUp>>
 
     @Query("""
         SELECT * FROM follow_ups
-        WHERE status = 'PENDING' AND dueDate < :currentTime
+        WHERE status = 'PENDING' AND dueDate < :currentTime AND barangayId = :barangayId
         ORDER BY dueDate ASC
     """)
-    fun getOverdueFollowUps(currentTime: Long): Flow<List<FollowUp>>
+    fun getOverdueFollowUps(currentTime: Long, barangayId: String): Flow<List<FollowUp>>
+
+    @Query("SELECT * FROM follow_ups WHERE followUpId = :followUpId AND barangayId = :barangayId LIMIT 1")
+    suspend fun getFollowUpById(followUpId: String, barangayId: String): FollowUp?
 
     @Query("SELECT * FROM follow_ups WHERE followUpId = :followUpId LIMIT 1")
-    suspend fun getFollowUpById(followUpId: String): FollowUp?
+    suspend fun getFollowUpByIdAnyBarangay(followUpId: String): FollowUp?
 
-    @Query("SELECT * FROM follow_ups WHERE status = :status ORDER BY dueDate ASC")
-    fun getFollowUpsByStatus(status: String): Flow<List<FollowUp>>
+    @Query("SELECT * FROM follow_ups WHERE status = :status AND barangayId = :barangayId ORDER BY dueDate ASC")
+    fun getFollowUpsByStatus(status: String, barangayId: String): Flow<List<FollowUp>>
 
     @Query("UPDATE follow_ups SET syncStatus = :status, lastSyncedAt = :lastSyncedAt WHERE followUpId = :followUpId")
     suspend fun updateSyncStatus(followUpId: String, status: String, lastSyncedAt: Long? = System.currentTimeMillis())

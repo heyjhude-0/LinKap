@@ -24,20 +24,23 @@ interface HouseholdDao {
     @Delete
     suspend fun deleteHousehold(household: Household)
 
-    @Query("SELECT * FROM households ORDER BY householdCode ASC")
-    fun getAllHouseholds(): Flow<List<Household>>
+    @Query("SELECT * FROM households WHERE barangayId = :barangayId ORDER BY householdCode ASC")
+    fun getAllHouseholds(barangayId: String): Flow<List<Household>>
 
-    @Query("SELECT * FROM households WHERE householdId = :householdId")
-    fun getHouseholdById(householdId: String): Flow<Household?>
+    @Query("SELECT * FROM households WHERE householdId = :householdId AND barangayId = :barangayId")
+    fun getHouseholdById(householdId: String, barangayId: String): Flow<Household?>
+
+    @Query("SELECT * FROM households WHERE householdId = :householdId AND barangayId = :barangayId LIMIT 1")
+    suspend fun getHouseholdByIdRaw(householdId: String, barangayId: String): Household?
 
     @Query("SELECT * FROM households WHERE householdId = :householdId LIMIT 1")
-    suspend fun getHouseholdByIdRaw(householdId: String): Household?
+    suspend fun getHouseholdByIdRawAnyBarangay(householdId: String): Household?
 
-    @Query("SELECT * FROM households WHERE LOWER(householdCode) = LOWER(:householdCode) LIMIT 1")
-    suspend fun getHouseholdByCode(householdCode: String): Household?
+    @Query("SELECT * FROM households WHERE LOWER(householdCode) = LOWER(:householdCode) AND barangayId = :barangayId LIMIT 1")
+    suspend fun getHouseholdByCode(householdCode: String, barangayId: String): Household?
 
-    @Query("SELECT * FROM households WHERE syncStatus IN ('PENDING', 'FAILED')")
-    suspend fun getPendingHouseholds(): List<Household>
+    @Query("SELECT * FROM households WHERE syncStatus IN ('PENDING', 'FAILED') AND barangayId = :barangayId")
+    suspend fun getPendingHouseholds(barangayId: String): List<Household>
 
     @Query("UPDATE households SET syncStatus = :status, lastSyncedAt = :lastSyncedAt WHERE householdId = :householdId")
     suspend fun updateSyncStatus(householdId: String, status: String, lastSyncedAt: Long? = System.currentTimeMillis())

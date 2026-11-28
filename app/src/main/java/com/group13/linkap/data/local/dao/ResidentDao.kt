@@ -24,17 +24,20 @@ interface ResidentDao {
     @Delete
     suspend fun deleteResident(resident: Resident)
 
-    @Query("SELECT * FROM residents ORDER BY lastName ASC")
-    fun getAllResidents(): Flow<List<Resident>>
+    @Query("SELECT * FROM residents WHERE barangayId = :barangayId ORDER BY lastName ASC")
+    fun getAllResidents(barangayId: String): Flow<List<Resident>>
 
-    @Query("SELECT * FROM residents WHERE householdId = :householdId ORDER BY lastName ASC")
-    fun getResidentsByHousehold(householdId: String): Flow<List<Resident>>
+    @Query("SELECT * FROM residents WHERE householdId = :householdId AND barangayId = :barangayId ORDER BY lastName ASC")
+    fun getResidentsByHousehold(householdId: String, barangayId: String): Flow<List<Resident>>
 
-    @Query("SELECT * FROM residents WHERE residentId = :residentId")
-    suspend fun getResidentById(residentId: String): Resident?
+    @Query("SELECT * FROM residents WHERE residentId = :residentId AND barangayId = :barangayId")
+    suspend fun getResidentById(residentId: String, barangayId: String): Resident?
 
-    @Query("SELECT * FROM residents WHERE syncStatus IN ('PENDING', 'FAILED')")
-    suspend fun getPendingResidents(): List<Resident>
+    @Query("SELECT * FROM residents WHERE residentId = :residentId LIMIT 1")
+    suspend fun getResidentByIdAnyBarangay(residentId: String): Resident?
+
+    @Query("SELECT * FROM residents WHERE syncStatus IN ('PENDING', 'FAILED') AND barangayId = :barangayId")
+    suspend fun getPendingResidents(barangayId: String): List<Resident>
 
     @Query("UPDATE residents SET syncStatus = :status, lastSyncedAt = :lastSyncedAt WHERE residentId = :residentId")
     suspend fun updateSyncStatus(residentId: String, status: String, lastSyncedAt: Long? = System.currentTimeMillis())

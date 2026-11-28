@@ -30,6 +30,7 @@ data class Visit(
     val latitude: Double?,
     val longitude: Double?,
 
+    val barangayId: String = "",
     val syncStatus: String = "PENDING",
     val createdAt: Long,
     val updatedAt: Long,

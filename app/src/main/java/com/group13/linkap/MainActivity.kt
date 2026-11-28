@@ -28,10 +28,12 @@ enum class AppStartState {
 
 class MainActivity : ComponentActivity() {
 
-    private val authRepository = AuthRepository()
+    private lateinit var authRepository: AuthRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        authRepository = AuthRepository(applicationContext)
 
         setContent {
             LinKapTheme {
